@@ -1,0 +1,43 @@
+From c5ac6f267ebcd574a91e4381c3c328628f389b4b Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Mon, 21 Jun 2021 22:03:18 +0000
+Subject: [PATCH 07/18] lib/misc: avoid NULL dereference in
+ LibInsertToTailOfBootOrder
+
+AllocatePool() may return NULL. We must check the return value before
+dereferencing it.
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ lib/misc.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/lib/misc.c b/lib/misc.c
+index 0350f86..74f5be3 100644
+--- a/lib/misc.c
++++ b/lib/misc.c
+@@ -386,7 +386,9 @@ LibInsertToTailOfBootOrder (
+ 
+     VarSize += sizeof(UINT16);
+     NewBootOptionArray = AllocatePool (VarSize);
+-    
++    if (!NewBootOptionArray)
++        return EFI_OUT_OF_RESOURCES;
++
+     for (Index = 0; Index < ((VarSize/sizeof(UINT16)) - 1); Index++) {
+         NewBootOptionArray[Index] = BootOptionArray[Index];
+     }
+@@ -403,9 +405,7 @@ LibInsertToTailOfBootOrder (
+                 VarSize, (VOID*) NewBootOptionArray
+                 );
+ 
+-    if (NewBootOptionArray) {
+-        FreePool (NewBootOptionArray);
+-    }
++    FreePool (NewBootOptionArray);
+     if (BootOptionArray) {
+         FreePool (BootOptionArray);
+     }
+-- 
+2.32.0
+

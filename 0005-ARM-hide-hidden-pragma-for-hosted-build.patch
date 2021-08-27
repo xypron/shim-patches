@@ -1,0 +1,45 @@
+From 0e0d546623ce1d138f4572d95909d6ee2fd82542 Mon Sep 17 00:00:00 2001
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Date: Tue, 28 Jun 2016 17:17:57 +0200
+Subject: [PATCH 05/18] ARM: hide 'hidden' pragma for hosted build
+
+The hidden visibility #pragma in inc/arm/efibind.h was meant to inform
+the compiler that symbols with external linkage are never exported from
+shared libraries [and thus never preempted] when executing in UEFI context
+(since UEFI does not support shared libraries). This allows the compiler to
+generate relative symbol references instead of GOT entries, which is much more
+efficient since the latter need to be relocated before invoking the entry
+point of the UEFI app.
+
+However, as it turns out, this pragma is leaking into other code that does
+not run in UEFI context, but simply needs to access data structures that
+UEFI defines. So make the pragma dependent on whether we are building with
+-ffreestanding, which is only used for bare metal code such as UEFI.
+
+Last-Update: 2018-08-24
+
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+
+Elder versions of sbsigntool failed to build on armhf without the patch,
+cf. https://launchpad.net/ubuntu/+source/gnu-efi/3.0.8-0ubuntu1~16.04.1
+Reviewed-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ inc/arm/efibind.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/inc/arm/efibind.h b/inc/arm/efibind.h
+index c48a05f..acd4417 100644
+--- a/inc/arm/efibind.h
++++ b/inc/arm/efibind.h
+@@ -38,7 +38,7 @@ typedef int32_t             intptr_t;
+  * This prevents GCC from emitting GOT based relocations, and use R_ARM_REL32
+  * relative relocations instead, which are more suitable for static binaries.
+  */
+-#ifdef __GNUC__
++#if defined(__GNUC__) && !__STDC_HOSTED__
+ #pragma GCC visibility push (hidden)
+ #endif
+ 
+-- 
+2.32.0
+

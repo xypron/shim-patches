@@ -1,0 +1,28 @@
+From 3a7c33503bdb3978ee7d6e7e8424d66587f0c5d4 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Mon, 23 Aug 2021 17:02:01 +0200
+Subject: [PATCH 18/18] Make.defaults: add riscv64 to ARCHES
+
+Shim uses a variable ARCHES which does not exist in upstream gnu-efi.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ Make.defaults | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Make.defaults b/Make.defaults
+index d798d44..63fd6cf 100755
+--- a/Make.defaults
++++ b/Make.defaults
+@@ -36,7 +36,7 @@
+ 
+ TOPDIR ?= $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
+ 
+-ARCHES = ia32 x86_64 ia64 aarch64 arm mips64el
++ARCHES = ia32 x86_64 ia64 aarch64 arm mips64el riscv64
+ 
+ #
+ # Variables below overridable from command-line:
+-- 
+2.32.0
+

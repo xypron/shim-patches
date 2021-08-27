@@ -1,0 +1,60 @@
+From 2f59558c5c1f89fa971c9b8f8b4624323ba2deb5 Mon Sep 17 00:00:00 2001
+From: Pete Batard <pete@akeo.ie>
+Date: Thu, 15 Jul 2021 12:38:22 +0100
+Subject: [PATCH 13/18] Fix VS2019 Code Analysis warnings
+
+When compiling for x64, Visual Studio 2019's Code Analysis produces the following warnings:
+
+C:\Projects\gnu-efi\lib\print.c(1380): warning C26451: Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value. Cast the value to the wider type before calling operator '+' to avoid overflow (io.2).
+C:\Projects\gnu-efi\lib\smbios.c(47): warning C26451: Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value. Cast the value to the wider type before calling operator '+' to avoid overflow (io.2).
+C:\Projects\gnu-efi\lib\str.c(289): warning C26451: Arithmetic overflow: Using operator '-' on a 4 byte value and then casting the result to a 8 byte value. Cast the value to the wider type before calling operator '-' to avoid overflow (io.2).
+
+Fix these by adding an explicit cast to UINTN.
+---
+ lib/print.c  | 2 +-
+ lib/smbios.c | 2 +-
+ lib/str.c    | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/print.c b/lib/print.c
+index becbc5e..d33e74d 100644
+--- a/lib/print.c
++++ b/lib/print.c
+@@ -1377,7 +1377,7 @@ ValueToString (
+         *(p1++) = (CHAR8)r + '0';
+     }
+ 
+-    c = (Comma ? ca[(p1 - str) % 3] : 999) + 1;
++    c = (UINTN) (Comma ? ca[(p1 - str) % 3] : 999) + 1;
+     while (p1 != str) {
+ 
+         c -= 1;
+diff --git a/lib/smbios.c b/lib/smbios.c
+index d349fb6..23bb477 100644
+--- a/lib/smbios.c
++++ b/lib/smbios.c
+@@ -44,7 +44,7 @@ LibGetSmbiosSystemGuidAndSerialNumber (
+     }
+ 
+     Smbios.Hdr = (SMBIOS_HEADER *)SmbiosTable->TableAddress;
+-    SmbiosEnd.Raw = (UINT8 *)(SmbiosTable->TableAddress + SmbiosTable->TableLength);
++    SmbiosEnd.Raw = (UINT8 *)((UINTN)SmbiosTable->TableAddress + SmbiosTable->TableLength);
+     for (Index = 0; Index < SmbiosTable->TableLength ; Index++) {
+         if (Smbios.Hdr->Type == 1) {
+             if (Smbios.Hdr->Length < 0x19) {
+diff --git a/lib/str.c b/lib/str.c
+index b78bf86..77c859d 100644
+--- a/lib/str.c
++++ b/lib/str.c
+@@ -238,7 +238,7 @@ xtoi (
+         }
+ 
+         if ((c >= '0'  &&  c <= '9')  ||  (c >= 'A'  &&  c <= 'F')) {
+-            u = (u << 4)  |  (c - (c >= 'A' ? 'A'-10 : '0'));
++            u = (u << 4)  |  ((UINTN)c - (c >= 'A' ? 'A'-10 : '0'));
+         } else {
+             break;
+         }
+-- 
+2.32.0
+

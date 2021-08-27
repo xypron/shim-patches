@@ -1,0 +1,46 @@
+From 882164d9534c898706afeb867b29cde090b9c255 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Sun, 4 Apr 2021 11:04:50 +0200
+Subject: [PATCH 03/18] lib/hand: missing va_end
+
+For each va_start() there must be a va_end().
+
+Correct LibInstallProtocolInterfaces() and
+LibUninstallProtocolInterfaces().
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ lib/hand.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/lib/hand.c b/lib/hand.c
+index e28b195..eba806c 100644
+--- a/lib/hand.c
++++ b/lib/hand.c
+@@ -488,6 +488,7 @@ LibInstallProtocolInterfaces (
+ 
+         Index += 1;
+     }
++    va_end (args);
+ 
+     //
+     // If there was an error, remove all the interfaces that were
+@@ -506,6 +507,7 @@ LibInstallProtocolInterfaces (
+         }        
+ 
+         *Handle = OldHandle;
++        va_end (args);
+     }
+ 
+     //
+@@ -552,6 +554,7 @@ LibUninstallProtocolInterfaces (
+             DEBUG((D_ERROR, "LibUninstallProtocolInterfaces: failed %g, %r\n", Protocol, Handle));
+         }
+     }
++    va_end (args);
+ }    
+ 
+ 
+-- 
+2.32.0
+

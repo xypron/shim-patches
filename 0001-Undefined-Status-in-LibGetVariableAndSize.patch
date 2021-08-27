@@ -1,0 +1,31 @@
+From cf29f50199c623b1d2b9f28090ffc5905d8b4a2f Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Fri, 19 Mar 2021 17:14:48 +0100
+Subject: [PATCH 01/18] Undefined Status in LibGetVariableAndSize()
+
+GrowBuffer() expects that parameter Status is initialized.
+LibGetVariableAndSize() currently passes random data from the stack.
+
+Initialize variable Status.
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ lib/misc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/misc.c b/lib/misc.c
+index c9a4b0b..0350f86 100644
+--- a/lib/misc.c
++++ b/lib/misc.c
+@@ -246,7 +246,7 @@ LibGetVariableAndSize (
+     OUT UINTN               *VarSize
+     )
+ {
+-    EFI_STATUS              Status;
++    EFI_STATUS              Status = EFI_SUCCESS;
+     VOID                    *Buffer;
+     UINTN                   BufferSize;
+ 
+-- 
+2.32.0
+

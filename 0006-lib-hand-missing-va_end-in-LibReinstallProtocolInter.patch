@@ -1,0 +1,38 @@
+From 8965614c542e2fcea34666cb2b9799c6d720fc55 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Mon, 21 Jun 2021 21:56:11 +0000
+Subject: [PATCH 06/18] lib/hand: missing va_end() in
+ LibReinstallProtocolInterfaces()
+
+For each va_start() there must be a call to va_end().
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ lib/hand.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/lib/hand.c b/lib/hand.c
+index eba806c..93a383c 100644
+--- a/lib/hand.c
++++ b/lib/hand.c
+@@ -610,6 +610,7 @@ LibReinstallProtocolInterfaces (
+ 
+         Index += 1;
+     }
++    va_end (args);
+ 
+     //
+     // If there was an error, undo all the interfaces that were
+@@ -627,7 +628,8 @@ LibReinstallProtocolInterfaces (
+             uefi_call_wrapper(BS->ReinstallProtocolInterface, 4, Handle, Protocol, NewInterface, OldInterface);
+ 
+             Index -= 1;
+-        }        
++        }
++        va_end (args);
+     }
+ 
+     //
+-- 
+2.32.0
+

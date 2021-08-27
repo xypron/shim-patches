@@ -1,0 +1,25 @@
+From d1e86e8288a4486ee17b6ef85e07bde63d408d1a Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Wed, 23 Jun 2021 22:35:02 +0200
+Subject: [PATCH 09/18] riscv64: missing EFI_FUNCTION
+
+Add missing definition. It is needed for 'make apps'.
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ inc/riscv64/efibind.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/inc/riscv64/efibind.h b/inc/riscv64/efibind.h
+index 40b9c20..57829cb 100644
+--- a/inc/riscv64/efibind.h
++++ b/inc/riscv64/efibind.h
+@@ -29,3 +29,5 @@ typedef uint16_t WCHAR;
+ #define EFI_SIGNATURE_16(A,B)             ((A) | (B<<8))
+ #define EFI_SIGNATURE_32(A,B,C,D)         (EFI_SIGNATURE_16(A,B)     | (EFI_SIGNATURE_16(C,D)     << 16))
+ #define EFI_SIGNATURE_64(A,B,C,D,E,F,G,H) (EFI_SIGNATURE_32(A,B,C,D) | ((UINT64)(EFI_SIGNATURE_32(E,F,G,H)) << 32))
++
++#define EFI_FUNCTION
+-- 
+2.32.0
+

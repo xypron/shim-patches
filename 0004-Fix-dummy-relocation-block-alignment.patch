@@ -1,0 +1,53 @@
+From 99a1ca86853f8e62baf823029fa53e3abece4716 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marvin=20H=C3=A4user?=
+ <8659494+mhaeuser@users.noreply.github.com>
+Date: Tue, 6 Apr 2021 22:35:03 +0200
+Subject: [PATCH 04/18] Fix dummy relocation block alignment
+
+As per the PE format specification, relocation blocks must be aligned on 32-bit boundaries. Fix the dummy relocations to obey the alignment constraints.
+---
+ gnuefi/crt0-efi-ia32.S   | 3 ++-
+ gnuefi/crt0-efi-ia64.S   | 2 +-
+ gnuefi/crt0-efi-x86_64.S | 3 ++-
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/gnuefi/crt0-efi-ia32.S b/gnuefi/crt0-efi-ia32.S
+index 2c56746..f583a4b 100644
+--- a/gnuefi/crt0-efi-ia32.S
++++ b/gnuefi/crt0-efi-ia32.S
+@@ -73,5 +73,6 @@ _start:
+ #define IMAGE_REL_ABSOLUTE	0
+ 	.section .reloc, "a"
+ 	.long	.dummy1-.dummy0				// Page RVA
+-	.long	10					// Block Size (2*4+2)
++	.long	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
++	.word	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
+ 	.word	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
+diff --git a/gnuefi/crt0-efi-ia64.S b/gnuefi/crt0-efi-ia64.S
+index 40c3c83..cd00b8d 100644
+--- a/gnuefi/crt0-efi-ia64.S
++++ b/gnuefi/crt0-efi-ia64.S
+@@ -82,6 +82,6 @@ _start_plabel:
+ 
+ 	.section .reloc, "a"
+ 	data4	_start_plabel				// Page RVA
+-	data4	12					// Block Size (2*4+2*2)
++	data4	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
+ 	data2	(IMAGE_REL_BASED_DIR64<<12) +  0	// reloc for plabel's entry point
+ 	data2	(IMAGE_REL_BASED_DIR64<<12) +  8	// reloc for plabel's global pointer
+diff --git a/gnuefi/crt0-efi-x86_64.S b/gnuefi/crt0-efi-x86_64.S
+index 1a87dbd..7235673 100644
+--- a/gnuefi/crt0-efi-x86_64.S
++++ b/gnuefi/crt0-efi-x86_64.S
+@@ -71,6 +71,7 @@ _start:
+ #define IMAGE_REL_ABSOLUTE	0
+ 	.section .reloc, "a"
+ 	.long	.dummy1-.dummy0				// Page RVA
+-	.long	10					// Block Size (2*4+2)
++	.long	12					// Block Size (2*4+2*2), must be aligned by 32 Bits
++	.word	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
+ 	.word	(IMAGE_REL_ABSOLUTE<<12) +  0		// reloc for dummy
+ 
+-- 
+2.32.0
+
