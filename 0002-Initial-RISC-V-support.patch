@@ -1,0 +1,389 @@
+From fd3ce84a1d228ef275bd18fb709fb5cb3361f0d4 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Mon, 5 Apr 2021 12:14:44 +0200
+Subject: [PATCH 2/2] Initial RISC-V support
+
+Add what is needed to build on riscv64.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ Cryptlib/Include/OpenSslSupport.h |   3 +-
+ Cryptlib/Makefile                 |   3 +
+ Cryptlib/OpenSSL/Makefile         |   3 +
+ Make.defaults                     |  10 ++
+ elf_riscv64_efi.lds               | 171 ++++++++++++++++++------------
+ include/asm.h                     |   2 +
+ include/peimage.h                 |   2 +
+ include/system/stdarg.h           |  12 ++-
+ lib/Makefile                      |   3 +
+ pe.c                              |   4 +
+ shim.h                            |  15 +++
+ 11 files changed, 156 insertions(+), 72 deletions(-)
+
+diff --git a/Cryptlib/Include/OpenSslSupport.h b/Cryptlib/Include/OpenSslSupport.h
+index b97149e..197cc96 100644
+--- a/Cryptlib/Include/OpenSslSupport.h
++++ b/Cryptlib/Include/OpenSslSupport.h
+@@ -61,7 +61,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+ 
+ #define CONFIG_HEADER_BN_H
+ 
+-#if defined(MDE_CPU_X64) || defined(MDE_CPU_AARCH64) || defined(MDE_CPU_IA64)
++#if defined(MDE_CPU_X64) || defined(MDE_CPU_AARCH64) || \
++    defined(MDE_CPU_IA64) || defined(MDE_CPU_RISCV64)
+ //
+ // With GCC we would normally use SIXTY_FOUR_BIT_LONG, but MSVC needs
+ // SIXTY_FOUR_BIT, because 'long' is 32-bit and only 'long long' is
+diff --git a/Cryptlib/Makefile b/Cryptlib/Makefile
+index 89fd5cd..6de37e8 100644
+--- a/Cryptlib/Makefile
++++ b/Cryptlib/Makefile
+@@ -36,6 +36,9 @@ endif
+ ifeq ($(ARCH),arm)
+ DEFINES		+= -DMDE_CPU_ARM
+ endif
++ifeq ($(ARCH),riscv64)
++DEFINES		+= -DMDE_CPU_RISCV64
++endif
+ 
+ LDFLAGS		= -nostdlib -znocombreloc
+ 
+diff --git a/Cryptlib/OpenSSL/Makefile b/Cryptlib/OpenSSL/Makefile
+index 795f471..afef979 100644
+--- a/Cryptlib/OpenSSL/Makefile
++++ b/Cryptlib/OpenSSL/Makefile
+@@ -49,6 +49,9 @@ endif
+ ifeq ($(ARCH),arm)
+ DEFINES		+= -DMDE_CPU_ARM
+ endif
++ifeq ($(ARCH),riscv64)
++DEFINES		+= -DMDE_CPU_RISCV64
++endif
+ 
+ LDFLAGS		= -nostdlib -znocombreloc
+ 
+diff --git a/Make.defaults b/Make.defaults
+index a775083..6cc4aa5 100644
+--- a/Make.defaults
++++ b/Make.defaults
+@@ -98,6 +98,16 @@ ifeq ($(ARCH),arm)
+ 	ARCH_LDFLAGS		+= --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
+ 	TIMESTAMP_LOCATION	:= 72
+ endif
++ifeq ($(ARCH),riscv64)
++	ARCH_CFLAGS		?= -DMDE_CPU_RISCV64 -DPAGE_SIZE=4096
++	ARCH_GNUEFI		?= riscv64
++	ARCH_SUFFIX		?= riscv64
++	ARCH_SUFFIX_UPPER	?= RISCV64
++	FORMAT			:= -O binary
++	SUBSYSTEM		:= 0xa
++	ARCH_LDFLAGS		+= --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
++	TIMESTAMP_LOCATION	:= 72
++endif
+ 
+ DEFINES		= -DDEFAULT_LOADER='L"$(DEFAULT_LOADER)"' \
+ 		  -DDEFAULT_LOADER_CHAR='"$(DEFAULT_LOADER)"'
+diff --git a/elf_riscv64_efi.lds b/elf_riscv64_efi.lds
+index bb64d81..64438d7 100644
+--- a/elf_riscv64_efi.lds
++++ b/elf_riscv64_efi.lds
+@@ -1,77 +1,108 @@
+-/* SPDX-License-Identifier: GPL-2.0+ */
+-
+ OUTPUT_FORMAT("elf64-littleriscv", "elf64-littleriscv", "elf64-littleriscv")
+ OUTPUT_ARCH(riscv)
+ ENTRY(_start)
+-SECTIONS {
+-.text 0x0 :
+-	{
+-		_text = .;
+-		*(.text.head)
+-		*(.text)
+-		*(.text.*)
+-		*(.gnu.linkonce.t.*)
+-		*(.srodata)
+-		*(.rodata*)
+-		. = ALIGN(16);
+-	}
+-	_etext = .;
+-	_text_size = . - _text;
+-.dynamic  :
+-	{ *(.dynamic) }
+-.data :
+-	ALIGN(4096)
+-	{
+-		_data = .;
+-		*(.sdata)
+-		*(.data)
+-		*(.data1)
+-		*(.data.*)
+-		*(.got.plt)
+-		*(.got)
++SECTIONS
++{
++  .text 0x0 : {
++    _text = .;
++    *(.text.head)
++    *(.text)
++    *(.text.*)
++    *(.gnu.linkonce.t.*)
++    _evtext = .;
++    . = ALIGN(4096);
++  }
++  _etext = .;
++  _text_size = . - _text;
++  _text_vsize = _evtext - _text;
++
++  . = ALIGN(4096);
++  .data :
++  {
++   _data = .;
++   *(.sdata)
++   *(.data)
++   *(.data1)
++   *(.data.*)
++   *(.got.plt)
++   *(.got)
++
++   *(.dynamic)
++
++   /* the EFI loader doesn't seem to like a .bss section, so we stick
++      it all into .data: */
++   . = ALIGN(16);
++   _bss = .;
++   *(.sbss)
++   *(.scommon)
++   *(.dynbss)
++   *(.bss)
++   *(COMMON)
++   . = ALIGN(4096);
++   _bss_end = .;
++  }
+ 
+-		/* the EFI loader doesn't seem to like a .bss section, so we stick
+-		   it all into .data: */
+-		. = ALIGN(16);
+-		_bss = .;
+-		*(.sbss)
+-		*(.scommon)
+-		*(.dynbss)
+-		*(.bss)
+-		*(COMMON)
+-		. = ALIGN(16);
+-		_bss_end = .;
+-	}
++  /*
++   * Note that _sbat must be the beginning of the data, and _esbat must be the
++   * end and must be before any section padding.  The sbat self-check uses
++   * _esbat to find the bounds of the data, and if the padding is included, the
++   * CSV parser (correctly) rejects the data as having NUL values in one of the
++   * required columns.
++   */
++  . = ALIGN(4096);
++  .sbat :
++  {
++    _sbat = .;
++    *(.sbat)
++    *(.sbat.*)
++    _esbat = .;
++    . = ALIGN(4096);
++    _epsbat = .;
++  }
++  _sbat_size = _epsbat - _sbat;
++  _sbat_vsize = _esbat - _sbat;
+ 
+-.rela.text :
+-	{ *(.rela.text) *(.rela.text*) }
+-.rela.dyn :
+-	{ *(.rela.dyn) }
+-.rela.plt :
+-	{ *(.rela.plt) }
+-.rela.got :
+-	{ *(.rela.got) }
+-.rela.data :
+-	{ *(.rela.data) *(.rela.data*) }
+-	. = ALIGN(512);
+-	_edata = .;
+-	_data_size = . - _data;
++  . = ALIGN(4096);
++  .rodata :
++  {
++    _rodata = .;
++    *(.rodata*)
++    *(.srodata)
++    . = ALIGN(16);
++    *(.note.gnu.build-id)
++    . = ALIGN(4096);
++    *(.vendor_cert)
++    *(.data.ident)
++  }
++  . = ALIGN(4096);
++  .rela :
++  {
++    *(.rela.dyn)
++    *(.rela.plt)
++    *(.rela.got)
++    *(.rela.data)
++    *(.rela.data*)
++  }
++  . = ALIGN(4096);
++  _edata = .;
++  _data_size = . - _data;
++  .dyn :
++  {
++    *(.dynsym)
++    *(.dynstr)
++    _evrodata = .;
++    . = ALIGN(4096);
++  }
++  _erodata = .;
++  _rodata_size = . - _rodata;
++  _rodata_vsize = _evrodata - _rodata;
++  _alldata_size = . - _data;
+ 
+-	. = ALIGN(4096);
+-.dynsym   :
+-	{ *(.dynsym) }
+-	. = ALIGN(4096);
+-.dynstr   :
+-	{ *(.dynstr) }
+-	. = ALIGN(4096);
+-.note.gnu.build-id :
+-	{ *(.note.gnu.build-id) }
+-/DISCARD/ :
+-	{
+-		*(.rel.reloc)
+-		*(.eh_frame)
+-		*(.note.GNU-stack)
+-	}
+-.comment 0 :
+-	{ *(.comment) }
++  /DISCARD/ :
++  {
++    *(.rel.reloc)
++    *(.eh_frame)
++    *(.note.GNU-stack)
++  }
++  .comment 0 : { *(.comment) }
+ }
+diff --git a/include/asm.h b/include/asm.h
+index 8458d5d..c5c9ec7 100644
+--- a/include/asm.h
++++ b/include/asm.h
+@@ -19,6 +19,8 @@ static inline uint64_t read_counter(void)
+         __asm__ __volatile__ ("mrs %0, pmccntr_el0" : "=r" (val));
+ #elif defined(__arm__)
+         __asm__ __volatile__ ("mrc p15, 0, %0, c9, c13, 0" : "=r" (val));
++#elif defined(__riscv) && __riscv_xlen == 64
++	__asm__ __volatile__ ("csrr %0, 0xc01" : "=r" (val) : : "memory");
+ #else
+ #error unsupported arch
+ #endif
+diff --git a/include/peimage.h b/include/peimage.h
+index 3b3f01a..aff5886 100644
+--- a/include/peimage.h
++++ b/include/peimage.h
+@@ -43,6 +43,8 @@
+ #define IMAGE_FILE_MACHINE_X64             0x8664
+ #define IMAGE_FILE_MACHINE_ARMTHUMB_MIXED  0x01c2
+ #define IMAGE_FILE_MACHINE_ARM64	   0xaa64
++#define IMAGE_FILE_MACHINE_RISCV32	   0x5032
++#define IMAGE_FILE_MACHINE_RISCV64	   0x5064
+ 
+ //
+ // EXE file formats
+diff --git a/include/system/stdarg.h b/include/system/stdarg.h
+index 4c956f7..bc1d33f 100644
+--- a/include/system/stdarg.h
++++ b/include/system/stdarg.h
+@@ -24,7 +24,7 @@ typedef __builtin_va_list __builtin_sysv_va_list;
+ #endif
+ 
+ #if defined(__aarch64__) || defined(__arm__) || defined(__i386__) || \
+-	defined(__i486__) || defined(__i686__)
++	defined(__i486__) || defined(__i686__) || defined(__riscv)
+ 
+ typedef __builtin_va_list ms_va_list;
+ typedef __builtin_va_list __builtin_ms_va_list;
+@@ -38,6 +38,16 @@ typedef __builtin_va_list sysv_va_list;
+ #define sysv_va_start(marker, arg) __builtin_va_start(marker, arg)
+ #define sysv_va_arg(marker, type)  __builtin_va_arg(marker, type)
+ #define sysv_va_end(marker)        __builtin_va_end(marker)
++
++/*
++ * gnu-efi needs this.
++ */
++typedef __builtin_va_list va_list;
++# define va_start(v,l)	__builtin_va_start(v,l)
++# define va_end(v)	__builtin_va_end(v)
++# define va_arg(v,l)	__builtin_va_arg(v,l)
++# define va_copy(d,s)	__builtin_va_copy(d,s)
++
+ /*
+  * OpenSSL's X509ConstructCertificateStack needs this.
+  */
+diff --git a/lib/Makefile b/lib/Makefile
+index a4a4855..8472eb0 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -30,6 +30,9 @@ endif
+ ifeq ($(ARCH),arm)
+ DEFINES		+= -DMDE_CPU_ARM
+ endif
++ifeq ($(ARCH),riscv64)
++DEFINES		+= -DMDE_CPU_RISCV64
++endif
+ 
+ LDFLAGS		= -nostdlib -znocombreloc
+ 
+diff --git a/pe.c b/pe.c
+index 87111a8..7ed886c 100644
+--- a/pe.c
++++ b/pe.c
+@@ -599,6 +599,8 @@ allow_64_bit(void)
+ {
+ #if defined(__x86_64__) || defined(__aarch64__)
+ 	return 1;
++#elif defined (__riscv) && __riscv_xlen == 64
++	return 1;
+ #elif defined(__i386__) || defined(__i686__)
+ 	/* Right now blindly assuming the kernel will correctly detect this
+ 	 * and /halt the system/ if you're not really on a 64-bit cpu */
+@@ -625,6 +627,8 @@ allow_32_bit(void)
+ 	return 1;
+ #elif defined(__aarch64__)
+ 	return 0;
++#elif defined (__riscv) && __riscv_xlen == 64
++	return 0;
+ #else /* assuming everything else is 32-bit... */
+ 	return 1;
+ #endif
+diff --git a/shim.h b/shim.h
+index 69ad2cc..4c80613 100644
+--- a/shim.h
++++ b/shim.h
+@@ -124,6 +124,21 @@
+ #endif
+ #endif
+ 
++#if defined(__riscv) && __riscv_xlen == 64
++#ifndef DEFAULT_LOADER
++#define DEFAULT_LOADER L"\\grubriscv64.efi"
++#endif
++#ifndef DEFAULT_LOADER_CHAR
++#define DEFAULT_LOADER_CHAR "\\grubriscv64.efi"
++#endif
++#ifndef EFI_ARCH
++#define EFI_ARCH L"riscv64"
++#endif
++#ifndef DEBUGDIR
++#define DEBUGDIR L"/usr/lib/debug/usr/share/shim/riscv64/"
++#endif
++#endif
++
+ #ifndef DEBUGSRC
+ #define DEBUGSRC L"/usr/src/debug/shim-" VERSIONSTR "." EFI_ARCH
+ #endif
+-- 
+2.32.0
+

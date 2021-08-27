@@ -1,0 +1,365 @@
+From ac4f020a7f2bfc5b53e0870906cd2724f6b4e9da Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date: Mon, 5 Apr 2021 12:01:39 +0200
+Subject: [PATCH 1/2] Correct signedness when calling string functions.
+
+The signedness of gnu-efi's CHAR8 is independent of the signedness of char.
+
+Our string functions expect (char *) or (const char *) while some of our
+variables are CHAR8.
+
+Provide the necessary conversions.
+
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ Cryptlib/SysCall/BaseStrings.c |  4 +-
+ csv.c                          |  2 +-
+ elf_riscv64_efi.lds            | 77 ++++++++++++++++++++++++++++++++++
+ httpboot.c                     | 16 +++----
+ mok.c                          |  2 +-
+ netboot.c                      | 22 +++++-----
+ pe.c                           |  2 +
+ sbat.c                         | 18 ++++----
+ tpm.c                          |  2 +-
+ 9 files changed, 112 insertions(+), 33 deletions(-)
+ create mode 100644 elf_riscv64_efi.lds
+
+diff --git a/Cryptlib/SysCall/BaseStrings.c b/Cryptlib/SysCall/BaseStrings.c
+index 29a1610..11f9567 100644
+--- a/Cryptlib/SysCall/BaseStrings.c
++++ b/Cryptlib/SysCall/BaseStrings.c
+@@ -3,7 +3,7 @@
+ CHAR8 *
+ AsciiStrCat(CHAR8 *Destination, const CHAR8 *Source)
+ {
+-	UINTN dest_len = strlen((CHAR8 *)Destination);
++	UINTN dest_len = strlen((char *)Destination);
+ 	UINTN i;
+ 
+ 	for (i = 0; Source[i] != '\0'; i++)
+@@ -61,7 +61,7 @@ WriteUnaligned32(UINT32 *Buffer, UINT32 Value)
+ UINTN
+ AsciiStrSize(const CHAR8 *string)
+ {
+-	return strlen(string) + 1;
++	return strlen((char *)string) + 1;
+ }
+ 
+ /* Based on AsciiStrDecimalToUintnS() in edk2
+diff --git a/csv.c b/csv.c
+index f6b37f1..af85e77 100644
+--- a/csv.c
++++ b/csv.c
+@@ -63,7 +63,7 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+ 
+ 	max = (uintptr_t)end - (uintptr_t)line + (end > line ? 1 : 0);
+ 
+-	if (line && is_utf8_bom(line, max))
++	if (line && is_utf8_bom((CHAR8 *)line, max))
+ 		line += UTF8_BOM_SIZE;
+ 
+ 	while (line && line <= data_end) {
+diff --git a/elf_riscv64_efi.lds b/elf_riscv64_efi.lds
+new file mode 100644
+index 0000000..bb64d81
+--- /dev/null
++++ b/elf_riscv64_efi.lds
+@@ -0,0 +1,77 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++
++OUTPUT_FORMAT("elf64-littleriscv", "elf64-littleriscv", "elf64-littleriscv")
++OUTPUT_ARCH(riscv)
++ENTRY(_start)
++SECTIONS {
++.text 0x0 :
++	{
++		_text = .;
++		*(.text.head)
++		*(.text)
++		*(.text.*)
++		*(.gnu.linkonce.t.*)
++		*(.srodata)
++		*(.rodata*)
++		. = ALIGN(16);
++	}
++	_etext = .;
++	_text_size = . - _text;
++.dynamic  :
++	{ *(.dynamic) }
++.data :
++	ALIGN(4096)
++	{
++		_data = .;
++		*(.sdata)
++		*(.data)
++		*(.data1)
++		*(.data.*)
++		*(.got.plt)
++		*(.got)
++
++		/* the EFI loader doesn't seem to like a .bss section, so we stick
++		   it all into .data: */
++		. = ALIGN(16);
++		_bss = .;
++		*(.sbss)
++		*(.scommon)
++		*(.dynbss)
++		*(.bss)
++		*(COMMON)
++		. = ALIGN(16);
++		_bss_end = .;
++	}
++
++.rela.text :
++	{ *(.rela.text) *(.rela.text*) }
++.rela.dyn :
++	{ *(.rela.dyn) }
++.rela.plt :
++	{ *(.rela.plt) }
++.rela.got :
++	{ *(.rela.got) }
++.rela.data :
++	{ *(.rela.data) *(.rela.data*) }
++	. = ALIGN(512);
++	_edata = .;
++	_data_size = . - _data;
++
++	. = ALIGN(4096);
++.dynsym   :
++	{ *(.dynsym) }
++	. = ALIGN(4096);
++.dynstr   :
++	{ *(.dynstr) }
++	. = ALIGN(4096);
++.note.gnu.build-id :
++	{ *(.note.gnu.build-id) }
++/DISCARD/ :
++	{
++		*(.rel.reloc)
++		*(.eh_frame)
++		*(.note.GNU-stack)
++	}
++.comment 0 :
++	{ *(.comment) }
++}
+diff --git a/httpboot.c b/httpboot.c
+index 93d8893..f088fae 100644
+--- a/httpboot.c
++++ b/httpboot.c
+@@ -130,7 +130,7 @@ find_httpboot (EFI_HANDLE device)
+ 
+ 			/* Save the current URI */
+ 			UriNode = (URI_DEVICE_PATH *)Node;
+-			uri_size = strlen(UriNode->Uri);
++			uri_size = strlen((char *)UriNode->Uri);
+ 			uri = AllocatePool(uri_size + 1);
+ 			if (!uri) {
+ 				perror(L"Failed to allocate uri\n");
+@@ -156,10 +156,10 @@ generate_next_uri (CONST CHAR8 *current_uri, CONST CHAR8 *next_loader,
+ 	UINTN path_len = 0;
+ 	UINTN count = 0;
+ 
+-	if (strncmp(current_uri, (CHAR8 *)"http://", 7) == 0) {
++	if (strncmp((char *)current_uri, "http://", 7) == 0) {
+ 		ptr = current_uri + 7;
+ 		count += 7;
+-	} else if (strncmp(current_uri, (CHAR8 *)"https://", 8) == 0) {
++	} else if (strncmp((char *)current_uri, "https://", 8) == 0) {
+ 		ptr = current_uri + 8;
+ 		count += 8;
+ 	} else {
+@@ -167,7 +167,7 @@ generate_next_uri (CONST CHAR8 *current_uri, CONST CHAR8 *next_loader,
+ 	}
+ 
+ 	/* Extract the path */
+-	next_len = strlen(next_loader);
++	next_len = strlen((char *)next_loader);
+ 	while (*ptr != '\0') {
+ 		count++;
+ 		if (*ptr == '/')
+@@ -192,9 +192,9 @@ extract_hostname (CONST CHAR8 *url, CHAR8 **hostname)
+ 	CONST CHAR8 *ptr, *start;
+ 	UINTN host_len = 0;
+ 
+-	if (strncmp(url, (CHAR8 *)"http://", 7) == 0)
++	if (strncmp((char *)url, "http://", 7) == 0)
+ 		start = url + 7;
+-	else if (strncmp(url, (CHAR8 *)"https://", 8) == 0)
++	else if (strncmp((char *)url, "https://", 8) == 0)
+ 		start = url + 8;
+ 	else
+ 		return EFI_INVALID_PARAMETER;
+@@ -571,7 +571,7 @@ receive_http_response(EFI_HTTP_PROTOCOL *http, VOID **buffer, UINT64 *buf_size)
+ 
+ 	/* Check the length of the file */
+ 	for (i = 0; i < rx_message.HeaderCount; i++) {
+-		if (!strcmp(rx_message.Headers[i].FieldName, (CHAR8 *)"Content-Length")) {
++		if (!strcmp((char *)rx_message.Headers[i].FieldName, "Content-Length")) {
+ 			*buf_size = ascii_to_int(rx_message.Headers[i].FieldValue);
+ 		}
+ 	}
+@@ -723,7 +723,7 @@ httpboot_fetch_buffer (EFI_HANDLE image, VOID **buffer, UINT64 *buf_size)
+ 	if (!uri)
+ 		return EFI_NOT_READY;
+ 
+-	translate_slashes(next_loader, DEFAULT_LOADER_CHAR);
++	translate_slashes((char *)next_loader, DEFAULT_LOADER_CHAR);
+ 
+ 	/* Create the URI for the next loader based on the original URI */
+ 	efi_status = generate_next_uri(uri, next_loader, &next_uri);
+diff --git a/mok.c b/mok.c
+index 5ad9072..1285562 100644
+--- a/mok.c
++++ b/mok.c
+@@ -1019,7 +1019,7 @@ EFI_STATUS import_mok_state(EFI_HANDLE image_handle)
+ 		struct mok_state_variable *v = &mok_state_variables[i];
+ 
+ 		ZeroMem(&config_template, sizeof(config_template));
+-		strncpy(config_template.name, (CHAR8 *)v->rtname8, 255);
++		strncpy((char *)config_template.name, v->rtname8, 255);
+ 		config_template.name[255] = '\0';
+ 
+ 		config_template.data_size = v->data_size;
+diff --git a/netboot.c b/netboot.c
+index 3f5c519..a081de9 100644
+--- a/netboot.c
++++ b/netboot.c
+@@ -135,7 +135,7 @@ static CHAR8 *str2ip6(CHAR8 *str)
+ 	if (dotcount > MAX_IP6_DOTS)
+ 		return (CHAR8 *)ip;
+ 
+-	len = strlen(str);
++	len = strlen((char *)str);
+ 	a = b = str;
+ 	for (i = p = 0; i < len; i++, b++) {
+ 		if (*b != ':')
+@@ -167,7 +167,7 @@ static BOOLEAN extract_tftp_info(CHAR8 *url)
+ 	CHAR8 ip6inv[16];
+ 	CHAR8 template[sizeof DEFAULT_LOADER_CHAR];
+ 
+-	translate_slashes(template, DEFAULT_LOADER_CHAR);
++	translate_slashes((char *)template, DEFAULT_LOADER_CHAR);
+ 
+ 	// to check against str2ip6() errors
+ 	memset(ip6inv, 0, sizeof(ip6inv));
+@@ -201,15 +201,15 @@ static BOOLEAN extract_tftp_info(CHAR8 *url)
+ 	memcpy(&tftp_addr.v6, str2ip6(ip6str), 16);
+ 	if (memcmp(&tftp_addr.v6, ip6inv, sizeof(ip6inv)) == 0)
+ 		return FALSE;
+-	full_path = AllocateZeroPool(strlen(end)+strlen(template)+1);
++	full_path = AllocateZeroPool(strlen((char *)end)+strlen((char *)template)+1);
+ 	if (!full_path)
+ 		return FALSE;
+-	memcpy(full_path, end, strlen(end));
++	memcpy(full_path, end, strlen((char *)end));
+ 	end = (CHAR8 *)strrchr((char *)full_path, '/');
+ 	if (!end)
+ 		end = (CHAR8 *)full_path;
+-	memcpy(end, template, strlen(template));
+-	end[strlen(template)] = '\0';
++	memcpy(end, template, strlen((char *)template));
++	end[strlen((char *)template)] = '\0';
+ 
+ 	return TRUE;
+ }
+@@ -237,8 +237,8 @@ static EFI_STATUS parseDhcp4()
+ 	UINTN template_ofs = 0;
+ 	EFI_PXE_BASE_CODE_DHCPV4_PACKET* pkt_v4 = (EFI_PXE_BASE_CODE_DHCPV4_PACKET *)&pxe->Mode->DhcpAck.Dhcpv4;
+ 
+-	translate_slashes(template, DEFAULT_LOADER_CHAR);
+-	template_len = strlen(template) + 1;
++	translate_slashes((char *)template, DEFAULT_LOADER_CHAR);
++	template_len = strlen((char *)template) + 1;
+ 
+ 	if(pxe->Mode->ProxyOfferReceived) {
+ 		/*
+@@ -258,7 +258,7 @@ static EFI_STATUS parseDhcp4()
+ 			pkt_v4 = &pxe->Mode->PxeReply.Dhcpv4;
+ 	}
+ 
+-	INTN dir_len = strnlen((CHAR8 *)pkt_v4->BootpBootFile, 127);
++	INTN dir_len = strnlen((char *)pkt_v4->BootpBootFile, 127);
+ 	INTN i;
+ 	UINT8 *dir = pkt_v4->BootpBootFile;
+ 
+@@ -274,13 +274,13 @@ static EFI_STATUS parseDhcp4()
+ 		return EFI_OUT_OF_RESOURCES;
+ 
+ 	if (dir_len > 0) {
+-		strncpy(full_path, (CHAR8 *)dir, dir_len);
++		strncpy((char *)full_path, (char *)dir, dir_len);
+ 		if (full_path[dir_len-1] == '/' && template[0] == '/')
+ 			full_path[dir_len-1] = '\0';
+ 	}
+ 	if (dir_len == 0 && dir[0] != '/' && template[0] == '/')
+ 		template_ofs++;
+-	strcat(full_path, template + template_ofs);
++	strcat((char *)full_path, (char *)template + template_ofs);
+ 	memcpy(&tftp_addr.v4, pkt_v4->BootpSiAddr, 4);
+ 
+ 	return EFI_SUCCESS;
+diff --git a/pe.c b/pe.c
+index 365e32a..87111a8 100644
+--- a/pe.c
++++ b/pe.c
+@@ -651,6 +651,8 @@ static const UINT16 machine_type =
+ 	IMAGE_FILE_MACHINE_I386;
+ #elif defined(__ia64__)
+ 	IMAGE_FILE_MACHINE_IA64;
++#elif defined (__riscv) && __riscv_xlen == 64
++	IMAGE_FILE_MACHINE_RISCV64;
+ #else
+ #error this architecture is not supported by shim
+ #endif
+diff --git a/sbat.c b/sbat.c
+index 6b7eb20..d1bc293 100644
+--- a/sbat.c
++++ b/sbat.c
+@@ -78,12 +78,12 @@ parse_sbat_section(char *section_base, size_t section_size,
+ 		struct csv_row * row;
+ 		size_t i;
+ 		const char **ptrs[] = {
+-			&entry->component_name,
+-			&entry->component_generation,
+-			&entry->vendor_name,
+-			&entry->vendor_package_name,
+-			&entry->vendor_version,
+-			&entry->vendor_url,
++			(const char **)&entry->component_name,
++			(const char **)&entry->component_generation,
++			(const char **)&entry->vendor_name,
++			(const char **)&entry->vendor_package_name,
++			(const char **)&entry->vendor_version,
++			(const char **)&entry->vendor_url,
+ 		};
+ 
+ 
+@@ -258,9 +258,9 @@ parse_sbat_var_data(list_t *entry_list, UINT8 *data, UINTN datasize)
+ 		struct csv_row * row;
+ 		size_t i;
+ 		const char **ptrs[] = {
+-			&entry->component_name,
+-			&entry->component_generation,
+-			&entry->sbat_datestamp,
++			(const char **)&entry->component_name,
++			(const char **)&entry->component_generation,
++			(const char **)&entry->sbat_datestamp,
+ 		};
+ 
+ 		row = list_entry(pos, struct csv_row, list);
+diff --git a/tpm.c b/tpm.c
+index 808e044..deb20c5 100644
+--- a/tpm.c
++++ b/tpm.c
+@@ -203,7 +203,7 @@ EFI_STATUS tpm_log_event(EFI_PHYSICAL_ADDRESS buf, UINTN size, UINT8 pcr,
+ 			 const CHAR8 *description)
+ {
+ 	return tpm_log_event_raw(buf, size, pcr, description,
+-				 strlen(description) + 1, EV_IPL, NULL);
++				 strlen((char *)description) + 1, EV_IPL, NULL);
+ }
+ 
+ EFI_STATUS tpm_log_pe(EFI_PHYSICAL_ADDRESS buf, UINTN size,
+-- 
+2.32.0
+
