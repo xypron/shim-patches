@@ -1,7 +1,7 @@
 From d1e86e8288a4486ee17b6ef85e07bde63d408d1a Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Wed, 23 Jun 2021 22:35:02 +0200
-Subject: [PATCH 09/18] riscv64: missing EFI_FUNCTION
+Subject: [PATCH 09/19] riscv64: missing EFI_FUNCTION
 
 Add missing definition. It is needed for 'make apps'.
 

@@ -1,7 +1,7 @@
 From 0871a64c68f0a04bf85c55102d83959fd7ad88e8 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Fri, 19 Mar 2021 17:38:42 +0100
-Subject: [PATCH 02/18] Initial support for RISCV64
+Subject: [PATCH 02/19] Initial support for RISCV64
 
 Add the RISCV64 architecture
 

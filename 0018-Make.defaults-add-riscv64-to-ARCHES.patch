@@ -1,7 +1,7 @@
 From 3a7c33503bdb3978ee7d6e7e8424d66587f0c5d4 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 Date: Mon, 23 Aug 2021 17:02:01 +0200
-Subject: [PATCH 18/18] Make.defaults: add riscv64 to ARCHES
+Subject: [PATCH 18/19] Make.defaults: add riscv64 to ARCHES
 
 Shim uses a variable ARCHES which does not exist in upstream gnu-efi.
 

@@ -22,3 +22,4 @@ git am ../patch/0015-riscv64-finalize-efibind.h.patch
 git am ../patch/0016-riscv64-provide-CHAR8-and-CHAR16-instead-of-WCHAR.patch
 git am ../patch/0017-lib-replace-va_end-by-ms_va_end.patch
 git am ../patch/0018-Make.defaults-add-riscv64-to-ARCHES.patch
+git am ../patch/0019-Adjust-crt0-efi-riscv64.S.patch

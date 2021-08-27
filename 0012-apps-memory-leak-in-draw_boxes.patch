@@ -1,7 +1,7 @@
 From 21c070d233842fc9e9b7ff1ba8dfb7a6937c53de Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Wed, 23 Jun 2021 23:22:41 +0200
-Subject: [PATCH 12/18] apps: memory leak in draw_boxes()
+Subject: [PATCH 12/19] apps: memory leak in draw_boxes()
 
 Free the buffer allocated to draw boxes.
 

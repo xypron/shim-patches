@@ -1,7 +1,7 @@
 From 882164d9534c898706afeb867b29cde090b9c255 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Sun, 4 Apr 2021 11:04:50 +0200
-Subject: [PATCH 03/18] lib/hand: missing va_end
+Subject: [PATCH 03/19] lib/hand: missing va_end
 
 For each va_start() there must be a va_end().
 

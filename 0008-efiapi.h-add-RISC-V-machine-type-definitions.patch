@@ -1,7 +1,7 @@
 From cd8e144a87692d49c5c53b7e355a13ddc39bfaf1 Mon Sep 17 00:00:00 2001
 From: Nigel Croxon <ncroxon@redhat.com>
 Date: Wed, 23 Jun 2021 09:37:54 -0400
-Subject: [PATCH 08/18] efiapi.h: add RISC-V machine type definitions
+Subject: [PATCH 08/19] efiapi.h: add RISC-V machine type definitions
 
 These values are from the UEFI specification version 2.9.
 

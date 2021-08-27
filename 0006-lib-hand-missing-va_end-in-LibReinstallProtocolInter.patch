@@ -1,7 +1,7 @@
 From 8965614c542e2fcea34666cb2b9799c6d720fc55 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Mon, 21 Jun 2021 21:56:11 +0000
-Subject: [PATCH 06/18] lib/hand: missing va_end() in
+Subject: [PATCH 06/19] lib/hand: missing va_end() in
  LibReinstallProtocolInterfaces()
 
 For each va_start() there must be a call to va_end().

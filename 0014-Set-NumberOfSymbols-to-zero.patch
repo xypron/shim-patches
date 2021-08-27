@@ -2,7 +2,7 @@ From e0fc7c44eb34650eecceef673a6f0b842fc810a8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Alfonso=20S=C3=A1nchez-Beato?=
  <alfonso.sanchez-beato@canonical.com>
 Date: Wed, 28 Jul 2021 13:50:39 +0200
-Subject: [PATCH 14/18] Set NumberOfSymbols to zero
+Subject: [PATCH 14/19] Set NumberOfSymbols to zero
 
 Acoording to what the spec says about the number of sybols [1]:
 

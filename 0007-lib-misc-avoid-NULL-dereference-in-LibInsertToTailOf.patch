@@ -1,7 +1,7 @@
 From c5ac6f267ebcd574a91e4381c3c328628f389b4b Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Mon, 21 Jun 2021 22:03:18 +0000
-Subject: [PATCH 07/18] lib/misc: avoid NULL dereference in
+Subject: [PATCH 07/19] lib/misc: avoid NULL dereference in
  LibInsertToTailOfBootOrder
 
 AllocatePool() may return NULL. We must check the return value before

@@ -1,7 +1,7 @@
 From 224c4bdbb764e30082bbf6cba74ec05ab43f7d5a Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Wed, 23 Jun 2021 22:49:12 +0200
-Subject: [PATCH 11/18] apps: define FrameBufferAddr for riscv64
+Subject: [PATCH 11/19] apps: define FrameBufferAddr for riscv64
 
 The size of FrameBufferAddr is architecture dependent. Add the missing
 definition for the riscv64 architecture.

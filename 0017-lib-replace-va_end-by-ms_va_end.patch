@@ -1,7 +1,7 @@
 From e0e8d8ecbfbd7bb8ab084d32667952d1743446a0 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 Date: Mon, 23 Aug 2021 11:21:26 +0200
-Subject: [PATCH 17/18] lib: replace va_end by ms_va_end
+Subject: [PATCH 17/19] lib: replace va_end by ms_va_end
 
 Shim uses ms_va_end() instead of va_end().
 

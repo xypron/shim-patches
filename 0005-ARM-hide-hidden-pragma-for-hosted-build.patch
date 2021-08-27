@@ -1,7 +1,7 @@
 From 0e0d546623ce1d138f4572d95909d6ee2fd82542 Mon Sep 17 00:00:00 2001
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 Date: Tue, 28 Jun 2016 17:17:57 +0200
-Subject: [PATCH 05/18] ARM: hide 'hidden' pragma for hosted build
+Subject: [PATCH 05/19] ARM: hide 'hidden' pragma for hosted build
 
 The hidden visibility #pragma in inc/arm/efibind.h was meant to inform
 the compiler that symbols with external linkage are never exported from

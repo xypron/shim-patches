@@ -1,7 +1,7 @@
 From 2f59558c5c1f89fa971c9b8f8b4624323ba2deb5 Mon Sep 17 00:00:00 2001
 From: Pete Batard <pete@akeo.ie>
 Date: Thu, 15 Jul 2021 12:38:22 +0100
-Subject: [PATCH 13/18] Fix VS2019 Code Analysis warnings
+Subject: [PATCH 13/19] Fix VS2019 Code Analysis warnings
 
 When compiling for x64, Visual Studio 2019's Code Analysis produces the following warnings:
 

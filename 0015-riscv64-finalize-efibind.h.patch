@@ -1,7 +1,7 @@
 From debff02b31b4ac038ae1afd4f4e0680faa76df5e Mon Sep 17 00:00:00 2001
 From: Pete Batard <pete@akeo.ie>
 Date: Thu, 19 Aug 2021 14:31:01 +0200
-Subject: [PATCH 15/18] riscv64: finalize efibind.h
+Subject: [PATCH 15/19] riscv64: finalize efibind.h
 
 There's little reason not to derive the RISCV64 version of efibind.h
 from the AARCH64 version, especially as the current version is missing

@@ -2,7 +2,7 @@ From 99a1ca86853f8e62baf823029fa53e3abece4716 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Marvin=20H=C3=A4user?=
  <8659494+mhaeuser@users.noreply.github.com>
 Date: Tue, 6 Apr 2021 22:35:03 +0200
-Subject: [PATCH 04/18] Fix dummy relocation block alignment
+Subject: [PATCH 04/19] Fix dummy relocation block alignment
 
 As per the PE format specification, relocation blocks must be aligned on 32-bit boundaries. Fix the dummy relocations to obey the alignment constraints.
 ---

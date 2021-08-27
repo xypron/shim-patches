@@ -1,7 +1,7 @@
 From 4c13ed715cfd400911e903fcb3d46395cb293bdb Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 Date: Mon, 23 Aug 2021 10:48:27 +0200
-Subject: [PATCH 16/18] riscv64: provide CHAR8 and CHAR16 (instead of WCHAR)
+Subject: [PATCH 16/19] riscv64: provide CHAR8 and CHAR16 (instead of WCHAR)
 
 Shim has diverged from upstream gnu-efi in using CHAR16 (instead of WCHAR)
 and CHAR8.

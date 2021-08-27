@@ -1,7 +1,7 @@
 From d9dfdce2b5cf49ea39a4e44e4836c8d5530e4ae9 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Wed, 23 Jun 2021 22:44:31 +0200
-Subject: [PATCH 10/18] riscv64: provide efisetjmp_arch.h
+Subject: [PATCH 10/19] riscv64: provide efisetjmp_arch.h
 
 efisetjmp_arch.h is required for 'make apps'.
 
