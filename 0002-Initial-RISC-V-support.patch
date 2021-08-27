@@ -1,4 +1,4 @@
-From fd3ce84a1d228ef275bd18fb709fb5cb3361f0d4 Mon Sep 17 00:00:00 2001
+From bb4f8ddb013f71f65c24ba9673adc9636b60731b Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Mon, 5 Apr 2021 12:14:44 +0200
 Subject: [PATCH 2/2] Initial RISC-V support
@@ -11,14 +11,14 @@ Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
  Cryptlib/Makefile                 |   3 +
  Cryptlib/OpenSSL/Makefile         |   3 +
  Make.defaults                     |  10 ++
- elf_riscv64_efi.lds               | 171 ++++++++++++++++++------------
+ elf_riscv64_efi.lds               | 174 ++++++++++++++++++------------
  include/asm.h                     |   2 +
  include/peimage.h                 |   2 +
  include/system/stdarg.h           |  12 ++-
  lib/Makefile                      |   3 +
  pe.c                              |   4 +
  shim.h                            |  15 +++
- 11 files changed, 156 insertions(+), 72 deletions(-)
+ 11 files changed, 159 insertions(+), 72 deletions(-)
 
 diff --git a/Cryptlib/Include/OpenSslSupport.h b/Cryptlib/Include/OpenSslSupport.h
 index b97149e..197cc96 100644
@@ -84,10 +84,10 @@ index a775083..6cc4aa5 100644
  DEFINES		= -DDEFAULT_LOADER='L"$(DEFAULT_LOADER)"' \
  		  -DDEFAULT_LOADER_CHAR='"$(DEFAULT_LOADER)"'
 diff --git a/elf_riscv64_efi.lds b/elf_riscv64_efi.lds
-index bb64d81..64438d7 100644
+index bb64d81..82bf118 100644
 --- a/elf_riscv64_efi.lds
 +++ b/elf_riscv64_efi.lds
-@@ -1,77 +1,108 @@
+@@ -1,77 +1,111 @@
 -/* SPDX-License-Identifier: GPL-2.0+ */
 -
  OUTPUT_FORMAT("elf64-littleriscv", "elf64-littleriscv", "elf64-littleriscv")
@@ -156,9 +156,13 @@ index bb64d81..64438d7 100644
 +   *(.dynbss)
 +   *(.bss)
 +   *(COMMON)
++   _evdata = .;
 +   . = ALIGN(4096);
 +   _bss_end = .;
 +  }
++  _edata = .;
++  _data_vsize = _evdata - _data;
++  _data_size = . - _data;
  
 -		/* the EFI loader doesn't seem to like a .bss section, so we stick
 -		   it all into .data: */
@@ -216,6 +220,7 @@ index bb64d81..64438d7 100644
 +    . = ALIGN(4096);
 +    *(.vendor_cert)
 +    *(.data.ident)
++    . = ALIGN(4096);
 +  }
 +  . = ALIGN(4096);
 +  .rela :
@@ -227,8 +232,6 @@ index bb64d81..64438d7 100644
 +    *(.rela.data*)
 +  }
 +  . = ALIGN(4096);
-+  _edata = .;
-+  _data_size = . - _data;
 +  .dyn :
 +  {
 +    *(.dynsym)
