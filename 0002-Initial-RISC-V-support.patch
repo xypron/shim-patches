@@ -1,4 +1,4 @@
-From bb4f8ddb013f71f65c24ba9673adc9636b60731b Mon Sep 17 00:00:00 2001
+From 40de35f3425c066d3990e5c20e7362d7085fc61c Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Mon, 5 Apr 2021 12:14:44 +0200
 Subject: [PATCH 2/2] Initial RISC-V support
@@ -84,7 +84,7 @@ index a775083..6cc4aa5 100644
  DEFINES		= -DDEFAULT_LOADER='L"$(DEFAULT_LOADER)"' \
  		  -DDEFAULT_LOADER_CHAR='"$(DEFAULT_LOADER)"'
 diff --git a/elf_riscv64_efi.lds b/elf_riscv64_efi.lds
-index bb64d81..82bf118 100644
+index bb64d81..4e664e1 100644
 --- a/elf_riscv64_efi.lds
 +++ b/elf_riscv64_efi.lds
 @@ -1,77 +1,111 @@
@@ -189,12 +189,12 @@ index bb64d81..82bf118 100644
 +    _sbat = .;
 +    *(.sbat)
 +    *(.sbat.*)
-+    _esbat = .;
++    _evsbat = .;
 +    . = ALIGN(4096);
-+    _epsbat = .;
 +  }
-+  _sbat_size = _epsbat - _sbat;
-+  _sbat_vsize = _esbat - _sbat;
++  _esbat = .;
++  _sbat_size = . - _sbat;
++  _sbat_vsize = _evsbat - _sbat;
  
 -.rela.text :
 -	{ *(.rela.text) *(.rela.text*) }
