@@ -1,4 +1,4 @@
-From cafb7589aabf76920490ea45ccd26277a7dd6980 Mon Sep 17 00:00:00 2001
+From bedb53a89a8af5cfa01c3d091975c32d4e678d76 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 Date: Fri, 27 Aug 2021 21:42:01 +0200
 Subject: [PATCH 19/19] Adjust crt0-efi-riscv64.S
@@ -13,11 +13,11 @@ one.
 
 Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 ---
- gnuefi/crt0-efi-riscv64.S | 41 ++++++++++++++++++++++++++-------------
- 1 file changed, 27 insertions(+), 14 deletions(-)
+ gnuefi/crt0-efi-riscv64.S | 69 ++++++++++++++++++++++++++-------------
+ 1 file changed, 47 insertions(+), 22 deletions(-)
 
 diff --git a/gnuefi/crt0-efi-riscv64.S b/gnuefi/crt0-efi-riscv64.S
-index 1bc536b..9e3090b 100644
+index 1bc536b..76c174c 100644
 --- a/gnuefi/crt0-efi-riscv64.S
 +++ b/gnuefi/crt0-efi-riscv64.S
 @@ -35,7 +35,7 @@ pe_header:
@@ -25,7 +25,7 @@ index 1bc536b..9e3090b 100644
  coff_header:
  	.short	0x5064				// riscv64
 -	.short	2				// nr_sections
-+	.short	3				// nr_sections
++	.short	4				// nr_sections
  	.long	0 				// TimeDateStamp
  	.long	0				// PointerToSymbolTable
  	.long	0				// NumberOfSymbols
@@ -38,57 +38,77 @@ index 1bc536b..9e3090b 100644
  
  	// Everything before the kernel image is considered part of the header
  	.long	_start - ImageBase		// SizeOfHeaders
-@@ -94,28 +94,41 @@ section_table:
+@@ -94,28 +94,53 @@ section_table:
  	 * because EFI applications must be relocatable.  This is a
  	 * dummy section as far as we are concerned.
  	 */
--	.ascii	".reloc\0\0"
++	.ascii	".text\0\0\0"
++	.long	_evtext - _start	// VirtualSize
++	.long	_start - ImageBase	// VirtualAddress
++	.long	_etext - _start		// SizeOfRawData
++	.long	_start - ImageBase	// PointerToRawData
++
++	.long	0			// PointerToRelocations
++	.long	0			// PointerToLineNumbers
++	.short	0			// NumberOfRelocations
++	.short	0			// NumberOfLineNumbers
++	.long	0x60000020		// Characteristics (section flags)
++
++	.ascii	".data\0\0\0"
++	.long	_evdata - _data		// VirtualSize
++	.long	_data - ImageBase	// VirtualAddress
++	.long	_edata - _data		// SizeOfRawData
++	.long	_data - ImageBase	// PointerToRawData
++
++	.long	0			// PointerToRelocations (0 for executables)
++	.long	0			// PointerToLineNumbers (0 for executables)
++	.short	0			// NumberOfRelocations  (0 for executables)
++	.short	0			// NumberOfLineNumbers  (0 for executables)
++	.long	0xc0000040		// Characteristics (section flags)
++
++	.ascii	".sbat\0\0\0"
++	.long	_evsbat - _sbat		// VirtualSize
++	.long	_sbat - ImageBase	// VirtualAddress
++	.long	_esbat - _sbat		// SizeOfRawData
++	.long	_sbat - ImageBase	// PointerToRawData
++
++	.long	0			// PointerToRelocations (0 for executables)
++	.long	0			// PointerToLineNumbers (0 for executables)
++	.short	0			// NumberOfRelocations  (0 for executables)
++	.short	0			// NumberOfLineNumbers  (0 for executables)
++	.long	0x40000040		// Characteristics (section flags)
++
+ 	.ascii	".reloc\0\0"
 -	.long	0
 -	.long	0
 -	.long	0				// SizeOfRawData
 -	.long	0				// PointerToRawData
-+	.ascii	".text\0\0\0"
-+	.long	_evtext - _start		// VirtualSize
-+	.long	_start - ImageBase		// VirtualAddress
-+	.long	_etext - _start			// SizeOfRawData
-+	.long	_start - ImageBase		// PointerToRawData
-+
- 	.long	0				// PointerToRelocations
- 	.long	0				// PointerToLineNumbers
- 	.short	0				// NumberOfRelocations
- 	.short	0				// NumberOfLineNumbers
+-	.long	0				// PointerToRelocations
+-	.long	0				// PointerToLineNumbers
+-	.short	0				// NumberOfRelocations
+-	.short	0				// NumberOfLineNumbers
 -	.long	0x42100040			// Characteristics (section flags)
-+	.long	0x60000020			// Characteristics (section flags)
++	.long	_evrodata -_rodata	// VirtualSize
++	.long	_rodata - ImageBase	// VirtualAddress
++	.long	_erodata - _rodata	// SizeOfRawData
++	.long	_rodata - ImageBase	// PointerToRawData
  
 -	.ascii	".text\0\0\0"
 -	.long	_edata - _start			// VirtualSize
 -	.long	_start - ImageBase		// VirtualAddress
 -	.long	_edata - _start			// SizeOfRawData
 -	.long	_start - ImageBase		// PointerToRawData
-+	.ascii	".data\0\0\0"
-+	.long	_evdata - _data			// VirtualSize
-+	.long	_data - ImageBase		// VirtualAddress
-+	.long	_edata - _data			// SizeOfRawData
-+	.long	_data - ImageBase		// PointerToRawData
-+
-+	.long	0				// PointerToRelocations (0 for executables)
-+	.long	0				// PointerToLineNumbers (0 for executables)
-+	.short	0				// NumberOfRelocations  (0 for executables)
-+	.short	0				// NumberOfLineNumbers  (0 for executables)
-+	.long	0xc0000040			// Characteristics (section flags)
-+
-+	.ascii	".reloc\0\0"
-+	.long	_evrodata -_rodata		// VirtualSize
-+	.long	_rodata - ImageBase		// VirtualAddress
-+	.long	_erodata - _rodata		// SizeOfRawData
-+	.long	_rodata - ImageBase		// PointerToRawData
- 
- 	.long	0				// PointerToRelocations (0 for executables)
- 	.long	0				// PointerToLineNumbers (0 for executables)
- 	.short	0				// NumberOfRelocations  (0 for executables)
- 	.short	0				// NumberOfLineNumbers  (0 for executables)
+-
+-	.long	0				// PointerToRelocations (0 for executables)
+-	.long	0				// PointerToLineNumbers (0 for executables)
+-	.short	0				// NumberOfRelocations  (0 for executables)
+-	.short	0				// NumberOfLineNumbers  (0 for executables)
 -	.long	0xe0500020			// Characteristics (section flags)
-+	.long	0x42000040			// Characteristics (section flags)
++	.long	0			// PointerToRelocations (0 for executables)
++	.long	0			// PointerToLineNumbers (0 for executables)
++	.short	0			// NumberOfRelocations  (0 for executables)
++	.short	0			// NumberOfLineNumbers  (0 for executables)
++	.long	0x42000040		// Characteristics (section flags)
  
  	.align	12
  	.globl _start
