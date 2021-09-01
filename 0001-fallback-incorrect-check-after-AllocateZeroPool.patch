@@ -1,0 +1,29 @@
+From 5f1f6f5c89369405f0685d7c4e0481831275ede3 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Sun, 29 Aug 2021 18:41:06 +0200
+Subject: [PATCH 1/1] fallback: incorrect check after AllocateZeroPool()
+
+After calling AllocateZeroPool() we must check the returned pointer.
+
+Fixes: 3ce517fdbb4e ("Add a fallback loader for when shim is invoked as BOOTX64.EFI")
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ fallback.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fallback.c b/fallback.c
+index 87fc3c8..6a58a00 100644
+--- a/fallback.c
++++ b/fallback.c
+@@ -158,7 +158,7 @@ read_file(EFI_FILE_HANDLE fh, CHAR16 *fullpath, CHAR16 **buffer, UINT64 *bs)
+ 	}
+ 
+ 	b = AllocateZeroPool(len + 2);
+-	if (!buffer) {
++	if (!b) {
+ 		console_print(L"Could not allocate memory\n");
+ 		fh2->Close(fh2);
+ 		return EFI_OUT_OF_RESOURCES;
+-- 
+2.30.2
+

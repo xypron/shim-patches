@@ -1,0 +1,29 @@
+From 26740dc44ace47b43e8e7f5952bdc1e262db49fe Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Sun, 29 Aug 2021 19:01:04 +0200
+Subject: [PATCH] str: remove duplicate parameter check
+
+There is no need to check the parameters of strntoken() twice.
+
+Fixes: c7bb10cf154a ("Tidy up our string primitives...")
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ include/str.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/include/str.h b/include/str.h
+index d433e6e..1d911e6 100644
+--- a/include/str.h
++++ b/include/str.h
+@@ -72,8 +72,6 @@ strntoken(char *str, size_t max, const char *delims, char **token, char *state)
+ 		return 0;
+ 
+ 	tokend = &str[max-1];
+-	if (!str || max == 0 || !delims || !token)
+-		return 0;
+ 
+ 	/*
+ 	 * the very special case of "" with max=1, where we have no prior
+-- 
+2.30.2
+
