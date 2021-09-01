@@ -6,3 +6,4 @@ git am --abort || true
 
 git am ../patches/0001-Correct-signedness-when-calling-string-functions.patch
 git am ../patches/0002-Initial-RISC-V-support.patch
+git am ../patches/0001-csv-detect-end-of-csv-file-correctly.patch
