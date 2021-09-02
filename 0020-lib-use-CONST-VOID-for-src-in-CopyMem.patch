@@ -1,0 +1,56 @@
+From d85e7c54eef3da0d8499dc5e635090003389e528 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Thu, 2 Sep 2021 20:04:56 +0200
+Subject: [PATCH 1/1] lib: use CONST VOID * for src in CopyMem()
+
+CopyMem() is implemented via RtCopyMem() which does not support overlapping
+copying and defines parameter as src. There was not reason to remove the
+CONST attribute in commit acc5371207f3 ("Make CopyMem() and SetMem() be
+EFIAPI") in the definition of CopyMem().
+
+Reinstating the CONST attribute resolves a build error in shim.
+
+Fixes: acc5371207f3 ("Make CopyMem() and SetMem() be EFIAPI")
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ inc/efilib.h | 6 +++---
+ lib/misc.c   | 6 +++---
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/inc/efilib.h b/inc/efilib.h
+index c00544a..57f3051 100644
+--- a/inc/efilib.h
++++ b/inc/efilib.h
+@@ -283,9 +283,9 @@ SetMem (
+ 
+ VOID EFIAPI
+ CopyMem (
+-    IN VOID     *Dest,
+-    IN VOID     *Src,
+-    IN UINTN    len
++    IN VOID           *Dest,
++    IN CONST VOID     *Src,
++    IN UINTN          len
+     );
+ 
+ INTN
+diff --git a/lib/misc.c b/lib/misc.c
+index 74f5be3..54eb446 100644
+--- a/lib/misc.c
++++ b/lib/misc.c
+@@ -110,9 +110,9 @@ SetMem (
+ 
+ VOID EFIAPI
+ CopyMem (
+-    IN VOID     *Dest,
+-    IN VOID     *Src,
+-    IN UINTN    len
++    IN VOID           *Dest,
++    IN CONST VOID     *Src,
++    IN UINTN          len
+     )
+ {
+     RtCopyMem (Dest, Src, len);
+-- 
+2.32.0
+
