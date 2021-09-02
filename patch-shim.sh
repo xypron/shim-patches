@@ -11,3 +11,4 @@ git am ../patches/0001-shim-avoid-BOOTx64.EFI-in-message-on-other-architect.patc
 git am ../patches/0001-str-remove-duplicate-parameter-check.patch
 git am ../patches/0001-fallback-incorrect-check-after-AllocateZeroPool.patch
 git am ../patches/0001-csv-detect-end-of-csv-file-correctly.patch
+git am ../patches/0001-sbat-append-NUL-byte-to-.sbat-section.patch

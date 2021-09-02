@@ -1,0 +1,56 @@
+From a4c3ceca370ed4193537655fff343c6535bfd755 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Fri, 3 Sep 2021 00:03:32 +0200
+Subject: [PATCH 1/1] sbat: append NUL byte to .sbat section
+
+When the UEFI firmware loads the .sbat section into memory it only
+intializes VirtSize bytes. Directly behind the .sbat section will be
+unintialized memory with unknown content.
+
+Shim's image file header is not available at runtime. Up to now the
+.sbat section ended with LF. So it was not possible to determine the
+end of the .bat section in memory.
+
+By appending a NUL byte to the .sbat section we get a well defined
+file end.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ Makefile |   2 ++
+ data/nul | Bin 0 -> 1 bytes
+ 2 files changed, 2 insertions(+)
+ create mode 100644 data/nul
+
+diff --git a/Makefile b/Makefile
+index 45db2b5..323c71d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -46,6 +46,7 @@ ORIG_MOK_SOURCES = MokManager.c PasswordCrypt.c crypt_blowfish.c shim.h $(wildca
+ FALLBACK_OBJS = fallback.o tpm.o errlog.o sbat_data.o
+ ORIG_FALLBACK_SRCS = fallback.c
+ SBATPATH = $(TOPDIR)/data/sbat.csv
++NULPATH = $(TOPDIR)/data/nul
+ 
+ ifeq ($(SOURCE_DATE_EPOCH),)
+ 	UNAME=$(shell uname -s -m -p -i -o)
+@@ -120,6 +121,7 @@ sbat_data.o : /dev/null
+ 		--set-section-flags .sbat=contents,alloc,load,readonly,data \
+ 		$@
+ 	$(foreach vs,$(VENDOR_SBATS),$(call add-vendor-sbat,$(vs),$@))
++	$(OBJCOPY) --add-section .sbat._nul=$(NULPATH) $@
+ 
+ $(SHIMNAME) : $(SHIMSONAME) post-process-pe
+ $(MMNAME) : $(MMSONAME) post-process-pe
+diff --git a/data/nul b/data/nul
+new file mode 100644
+index 0000000000000000000000000000000000000000..f76dd238ade08917e6712764a16a22005a50573d
+GIT binary patch
+literal 1
+IcmZPo000310RR91
+
+literal 0
+HcmV?d00001
+
+-- 
+2.32.0
+
