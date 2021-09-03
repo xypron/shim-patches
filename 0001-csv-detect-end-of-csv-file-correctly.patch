@@ -1,7 +1,7 @@
-From d6d8d4c372c084e24e87dd522d3d384b5b2cfde2 Mon Sep 17 00:00:00 2001
+From 333ec91a2cf5f4f56de903e3671bd20927a038e6 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 Date: Sun, 29 Aug 2021 20:47:46 +0200
-Subject: [PATCH] csv: detect end of csv file correctly
+Subject: [PATCH 1/2] csv: detect end of csv file correctly
 
 .sbat sections contain user supplied data. We should not assume that it is
 well formed. The last line feed might be missing or it might not be at the
@@ -18,22 +18,14 @@ we have not reached the end of the file marked by a '\0' character.
 
 Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
 ---
- csv.c | 13 +++++++++++--
- 1 file changed, 11 insertions(+), 2 deletions(-)
+ csv.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/csv.c b/csv.c
-index f6b37f1..93e47d6 100644
+index f6b37f1..3278040 100644
 --- a/csv.c
 +++ b/csv.c
-@@ -4,6 +4,7 @@
-  */
- 
- #include "shim.h"
-+#include <stdio.h>
- 
- void NONNULL(1, 3, 4)
- parse_csv_line(char * line, size_t max, size_t *n_columns, const char *columns[])
-@@ -15,6 +16,7 @@ parse_csv_line(char * line, size_t max, size_t *n_columns, const char *columns[]
+@@ -15,6 +15,7 @@ parse_csv_line(char * line, size_t max, size_t *n_columns, const char *columns[]
  	char *token = NULL;
  
  	bool valid = true;
@@ -41,7 +33,7 @@ index f6b37f1..93e47d6 100644
  	for (n = 0; n < *n_columns; n++) {
  
  		if (valid) {
-@@ -62,16 +64,17 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+@@ -62,16 +63,17 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
  	}
  
  	max = (uintptr_t)end - (uintptr_t)line + (end > line ? 1 : 0);
@@ -61,7 +53,7 @@ index f6b37f1..93e47d6 100644
  
  		end = data_end;
  		max = (uintptr_t)end - (uintptr_t)line + (end > line ? 1 : 0);
-@@ -91,6 +94,9 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+@@ -91,6 +93,9 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
  				end = tmp;
  		}
  		max = (uintptr_t)end - (uintptr_t)line + (end > line ? 1 : 0);
@@ -71,7 +63,7 @@ index f6b37f1..93e47d6 100644
  		*end = '\0';
  
  		if (line == data_end || max == 0) {
-@@ -115,6 +121,9 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+@@ -115,6 +120,9 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
  
  		parse_csv_line(line, max, &m_columns, (const char **)entry->columns);
  		entry->n_columns = m_columns;
