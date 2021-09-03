@@ -12,4 +12,5 @@ git am ../patches/0001-str-remove-duplicate-parameter-check.patch
 git am ../patches/0001-fallback-incorrect-check-after-AllocateZeroPool.patch
 git am ../patches/0001-test-csv-test-handling-of-trailing-NUL-byte.patch
 git am ../patches/0001-csv-detect-end-of-csv-file-correctly.patch
+git am ../patches/0001-csv-add-comments-in-parse_csv_data.patch
 git am ../patches/0001-sbat-append-NUL-byte-to-.sbat-section.patch

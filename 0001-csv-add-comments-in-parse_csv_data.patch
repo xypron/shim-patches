@@ -1,0 +1,35 @@
+From a0b226c82f97d4cbff01c1b105e388dd2796b976 Mon Sep 17 00:00:00 2001
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Thu, 2 Sep 2021 15:20:40 +0200
+Subject: [PATCH] csv: add comments in parse_csv_data()
+
+Add two comments to clarify how parse_csv_data() works.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+---
+ csv.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/csv.c b/csv.c
+index 3278040..18460cd 100644
+--- a/csv.c
++++ b/csv.c
+@@ -77,6 +77,7 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+ 
+ 		end = data_end;
+ 		max = (uintptr_t)end - (uintptr_t)line + (end > line ? 1 : 0);
++		/* Skip the delimiter(s) of the previous line */
+ 		while (max && found) {
+ 			found = false;
+ 			for (delim = &delims[0]; max && *delim; delim++) {
+@@ -87,6 +88,7 @@ parse_csv_data(char *data, char *data_end, size_t n_columns, list_t *list)
+ 				}
+ 			}
+ 		}
++		/* Find the first delimiter of the current line */
+ 		for (delim = &delims[0]; *delim; delim++) {
+ 			char *tmp = strnchrnul(line, max, *delim);
+ 			if (tmp < end)
+-- 
+2.32.0
+
