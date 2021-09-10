@@ -1,4 +1,4 @@
-From 40de35f3425c066d3990e5c20e7362d7085fc61c Mon Sep 17 00:00:00 2001
+From c4c21f098928d07eedf07c9760bbcc7457662f74 Mon Sep 17 00:00:00 2001
 From: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Date: Mon, 5 Apr 2021 12:14:44 +0200
 Subject: [PATCH 2/2] Initial RISC-V support
@@ -10,18 +10,20 @@ Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
  Cryptlib/Include/OpenSslSupport.h |   3 +-
  Cryptlib/Makefile                 |   3 +
  Cryptlib/OpenSSL/Makefile         |   3 +
- Make.defaults                     |  10 ++
- elf_riscv64_efi.lds               | 174 ++++++++++++++++++------------
+ Make.defaults                     |  10 +++
+ elf_riscv64_efi.lds               | 111 ++++++++++++++++++++++++++++++
+ gnu-efi                           |   2 +-
  include/asm.h                     |   2 +
  include/peimage.h                 |   2 +
- include/system/stdarg.h           |  12 ++-
+ include/system/stdarg.h           |  12 +++-
  lib/Makefile                      |   3 +
- pe.c                              |   4 +
- shim.h                            |  15 +++
- 11 files changed, 159 insertions(+), 72 deletions(-)
+ pe.c                              |   6 ++
+ shim.h                            |  15 ++++
+ 12 files changed, 169 insertions(+), 3 deletions(-)
+ create mode 100644 elf_riscv64_efi.lds
 
 diff --git a/Cryptlib/Include/OpenSslSupport.h b/Cryptlib/Include/OpenSslSupport.h
-index b97149e..197cc96 100644
+index 0c2fb8b..a0a7124 100644
 --- a/Cryptlib/Include/OpenSslSupport.h
 +++ b/Cryptlib/Include/OpenSslSupport.h
 @@ -61,7 +61,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
@@ -63,12 +65,12 @@ index 795f471..afef979 100644
  LDFLAGS		= -nostdlib -znocombreloc
  
 diff --git a/Make.defaults b/Make.defaults
-index a775083..6cc4aa5 100644
+index d041f0d..75244ca 100644
 --- a/Make.defaults
 +++ b/Make.defaults
 @@ -98,6 +98,16 @@ ifeq ($(ARCH),arm)
+ 	SUBSYSTEM		:= 0xa
  	ARCH_LDFLAGS		+= --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
- 	TIMESTAMP_LOCATION	:= 72
  endif
 +ifeq ($(ARCH),riscv64)
 +	ARCH_CFLAGS		?= -DMDE_CPU_RISCV64 -DPAGE_SIZE=4096
@@ -84,41 +86,14 @@ index a775083..6cc4aa5 100644
  DEFINES		= -DDEFAULT_LOADER='L"$(DEFAULT_LOADER)"' \
  		  -DDEFAULT_LOADER_CHAR='"$(DEFAULT_LOADER)"'
 diff --git a/elf_riscv64_efi.lds b/elf_riscv64_efi.lds
-index bb64d81..4e664e1 100644
---- a/elf_riscv64_efi.lds
+new file mode 100644
+index 0000000..82bf118
+--- /dev/null
 +++ b/elf_riscv64_efi.lds
-@@ -1,77 +1,111 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--
- OUTPUT_FORMAT("elf64-littleriscv", "elf64-littleriscv", "elf64-littleriscv")
- OUTPUT_ARCH(riscv)
- ENTRY(_start)
--SECTIONS {
--.text 0x0 :
--	{
--		_text = .;
--		*(.text.head)
--		*(.text)
--		*(.text.*)
--		*(.gnu.linkonce.t.*)
--		*(.srodata)
--		*(.rodata*)
--		. = ALIGN(16);
--	}
--	_etext = .;
--	_text_size = . - _text;
--.dynamic  :
--	{ *(.dynamic) }
--.data :
--	ALIGN(4096)
--	{
--		_data = .;
--		*(.sdata)
--		*(.data)
--		*(.data1)
--		*(.data.*)
--		*(.got.plt)
--		*(.got)
+@@ -0,0 +1,111 @@
++OUTPUT_FORMAT("elf64-littleriscv", "elf64-littleriscv", "elf64-littleriscv")
++OUTPUT_ARCH(riscv)
++ENTRY(_start)
 +SECTIONS
 +{
 +  .text 0x0 : {
@@ -163,19 +138,7 @@ index bb64d81..4e664e1 100644
 +  _edata = .;
 +  _data_vsize = _evdata - _data;
 +  _data_size = . - _data;
- 
--		/* the EFI loader doesn't seem to like a .bss section, so we stick
--		   it all into .data: */
--		. = ALIGN(16);
--		_bss = .;
--		*(.sbss)
--		*(.scommon)
--		*(.dynbss)
--		*(.bss)
--		*(COMMON)
--		. = ALIGN(16);
--		_bss_end = .;
--	}
++
 +  /*
 +   * Note that _sbat must be the beginning of the data, and _esbat must be the
 +   * end and must be before any section padding.  The sbat self-check uses
@@ -189,26 +152,13 @@ index bb64d81..4e664e1 100644
 +    _sbat = .;
 +    *(.sbat)
 +    *(.sbat.*)
-+    _evsbat = .;
++    _esbat = .;
 +    . = ALIGN(4096);
++    _epsbat = .;
 +  }
-+  _esbat = .;
-+  _sbat_size = . - _sbat;
-+  _sbat_vsize = _evsbat - _sbat;
- 
--.rela.text :
--	{ *(.rela.text) *(.rela.text*) }
--.rela.dyn :
--	{ *(.rela.dyn) }
--.rela.plt :
--	{ *(.rela.plt) }
--.rela.got :
--	{ *(.rela.got) }
--.rela.data :
--	{ *(.rela.data) *(.rela.data*) }
--	. = ALIGN(512);
--	_edata = .;
--	_data_size = . - _data;
++  _sbat_size = _epsbat - _sbat;
++  _sbat_vsize = _esbat - _sbat;
++
 +  . = ALIGN(4096);
 +  .rodata :
 +  {
@@ -243,24 +193,7 @@ index bb64d81..4e664e1 100644
 +  _rodata_size = . - _rodata;
 +  _rodata_vsize = _evrodata - _rodata;
 +  _alldata_size = . - _data;
- 
--	. = ALIGN(4096);
--.dynsym   :
--	{ *(.dynsym) }
--	. = ALIGN(4096);
--.dynstr   :
--	{ *(.dynstr) }
--	. = ALIGN(4096);
--.note.gnu.build-id :
--	{ *(.note.gnu.build-id) }
--/DISCARD/ :
--	{
--		*(.rel.reloc)
--		*(.eh_frame)
--		*(.note.GNU-stack)
--	}
--.comment 0 :
--	{ *(.comment) }
++
 +  /DISCARD/ :
 +  {
 +    *(.rel.reloc)
@@ -268,9 +201,16 @@ index bb64d81..4e664e1 100644
 +    *(.note.GNU-stack)
 +  }
 +  .comment 0 : { *(.comment) }
- }
++}
+diff --git a/gnu-efi b/gnu-efi
+index acc5371..f4b1cdf 160000
+--- a/gnu-efi
++++ b/gnu-efi
+@@ -1 +1 @@
+-Subproject commit acc5371207f3041450e1d8ae5b24f6df3e82b152
++Subproject commit f4b1cdf5965adc1f88af2a31c572e9290c771d07
 diff --git a/include/asm.h b/include/asm.h
-index 8458d5d..c5c9ec7 100644
+index 03b0655..7ba4efe 100644
 --- a/include/asm.h
 +++ b/include/asm.h
 @@ -19,6 +19,8 @@ static inline uint64_t read_counter(void)
@@ -340,10 +280,10 @@ index a4a4855..8472eb0 100644
  LDFLAGS		= -nostdlib -znocombreloc
  
 diff --git a/pe.c b/pe.c
-index 87111a8..7ed886c 100644
+index d72d814..61cc137 100644
 --- a/pe.c
 +++ b/pe.c
-@@ -599,6 +599,8 @@ allow_64_bit(void)
+@@ -596,6 +596,8 @@ allow_64_bit(void)
  {
  #if defined(__x86_64__) || defined(__aarch64__)
  	return 1;
@@ -352,7 +292,7 @@ index 87111a8..7ed886c 100644
  #elif defined(__i386__) || defined(__i686__)
  	/* Right now blindly assuming the kernel will correctly detect this
  	 * and /halt the system/ if you're not really on a 64-bit cpu */
-@@ -625,6 +627,8 @@ allow_32_bit(void)
+@@ -622,6 +624,8 @@ allow_32_bit(void)
  	return 1;
  #elif defined(__aarch64__)
  	return 0;
@@ -361,11 +301,20 @@ index 87111a8..7ed886c 100644
  #else /* assuming everything else is 32-bit... */
  	return 1;
  #endif
+@@ -648,6 +652,8 @@ static const UINT16 machine_type =
+ 	IMAGE_FILE_MACHINE_I386;
+ #elif defined(__ia64__)
+ 	IMAGE_FILE_MACHINE_IA64;
++#elif defined (__riscv) && __riscv_xlen == 64
++	IMAGE_FILE_MACHINE_RISCV64;
+ #else
+ #error this architecture is not supported by shim
+ #endif
 diff --git a/shim.h b/shim.h
-index 69ad2cc..4c80613 100644
+index 5e1ab36..fc79c15 100644
 --- a/shim.h
 +++ b/shim.h
-@@ -124,6 +124,21 @@
+@@ -128,6 +128,21 @@
  #endif
  #endif
  
